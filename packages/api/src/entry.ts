@@ -1,3 +1,3 @@
-export { Link } from './links/entities/link.entity';
-export { CreateLinkDto } from './links/dto/create-link.dto';
-export { UpdateLinkDto } from './links/dto/update-link.dto';
+export { Todo } from './todo/entities/todo.entity';
+export { CreateTodoDto } from './todo/dto/create-todo.dto';
+export { UpdateTodoDto } from './todo/dto/update-todo.dto';

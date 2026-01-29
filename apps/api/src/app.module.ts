@@ -1,12 +1,23 @@
 import { Module } from '@nestjs/common';
-
-import { LinksModule } from './links/links.module';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppService } from './app.service';
 import { AppController } from './app.controller';
+import { TodoModule } from './todo/todo.module';
 
 @Module({
-  imports: [LinksModule],
+  imports: [
+    ConfigModule.forRoot(),
+    TypeOrmModule.forRoot({
+      type: 'sqlite',
+      database: './database.sqlite',
+      autoLoadEntities: true,
+      synchronize: true,
+      logging: true,
+    }),
+    TodoModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
