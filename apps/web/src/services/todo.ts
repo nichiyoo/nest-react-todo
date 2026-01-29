@@ -20,6 +20,11 @@ export const todoService = {
     return data;
   },
 
+  deleteTodo: async (id: number) => {
+    const { data } = await instance.delete<Todo>(`/api/todos/${id}`);
+    return data;
+  },
+
   getTodoById: async (id: number) => {
     const { data } = await instance.get<Todo>(`/api/todos/${id}`);
     return data;

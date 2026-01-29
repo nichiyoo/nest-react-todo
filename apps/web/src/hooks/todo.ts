@@ -40,3 +40,14 @@ export const useUpdateTodo = () => {
     },
   });
 };
+
+export const useDeleteTodo = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => todoService.deleteTodo(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+    },
+  });
+};

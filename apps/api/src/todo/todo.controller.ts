@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Query,
+  Delete,
 } from '@nestjs/common';
 import { TodoService } from './todo.service';
 import type { Todo, CreateTodoDto, UpdateTodoDto } from '@repo/api';
@@ -30,5 +31,10 @@ export class TodoController {
     @Body() updateTodoDto: UpdateTodoDto,
   ): Promise<Todo> {
     return await this.todoService.update(+id, updateTodoDto);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string): Promise<Todo> {
+    return await this.todoService.remove(+id);
   }
 }

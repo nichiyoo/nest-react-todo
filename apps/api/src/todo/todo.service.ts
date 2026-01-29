@@ -48,7 +48,13 @@ export class TodoService {
     return this.todoRepository.save(todo);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number): Promise<Todo> {
+    const todo = await this.todoRepository.findOneBy({ id });
+    if (!todo) {
+      throw new Error('Todo not found');
+    }
+
     await this.todoRepository.delete(id);
+    return todo;
   }
 }

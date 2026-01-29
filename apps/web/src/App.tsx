@@ -3,10 +3,16 @@ import { useSearchParams } from 'react-router-dom';
 
 import { Todo } from './types/todo';
 import { STATUS, TodoStatus } from './types/status';
-import { useCreateTodo, useTodos, useUpdateTodo } from './hooks/todo';
+import {
+  useCreateTodo,
+  useTodos,
+  useUpdateTodo,
+  useDeleteTodo,
+} from './hooks/todo';
 
 function App() {
   const [searchParams, setSearchParams] = useSearchParams();
+
   const [title, setTitle] = React.useState('');
   const [status, setStatus] = React.useState<TodoStatus>(STATUS.CREATED);
   const [problemDesc, setProblemDesc] = React.useState('');
@@ -18,9 +24,12 @@ function App() {
   const search = searchParams.get('search') || '';
 
   const ref = React.useRef<HTMLDialogElement>(null);
+  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
   const { data: todos, isLoading, isError, error } = useTodos(search);
   const createTodoMutation = useCreateTodo();
   const updateTodoMutation = useUpdateTodo();
+  const deleteTodoMutation = useDeleteTodo();
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -28,7 +37,6 @@ function App() {
         handleCloseDetail();
       }
     };
-
     if (selected) document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -51,14 +59,13 @@ function App() {
     }
   };
 
-  const handleUpdateStatus = (id: number, status: TodoStatus) => {
-    updateTodoMutation.mutate({ id, data: { status } });
-  };
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value) setSearchParams({ search: value });
-    else setSearchParams({});
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      if (value) setSearchParams({ search: value });
+      else setSearchParams({});
+    }, 500);
   };
 
   const handleShowDetail = (todo: Todo) => {
@@ -78,12 +85,21 @@ function App() {
       if (field === 'status') {
         if (value !== STATUS.PROBLEM) {
           newTodo = { ...newTodo, problem_desc: undefined };
-        } else if (!editingTodo.problem_desc && editingTodo.status !== STATUS.PROBLEM) {
+        } else if (
+          !editingTodo.problem_desc &&
+          editingTodo.status !== STATUS.PROBLEM
+        ) {
           newTodo = { ...newTodo, problem_desc: '' };
         }
       }
 
       setEditingTodo(newTodo);
+    }
+  };
+
+  const handleDeleteTodo = (id: number) => {
+    if (window.confirm('Are you sure you want to delete this todo?')) {
+      deleteTodoMutation.mutate(id);
     }
   };
 
@@ -102,12 +118,12 @@ function App() {
   };
 
   return (
-    <div className="container" style={{ paddingTop: '2rem' }}>
+    <div className="container">
       <h1>Todo Application</h1>
 
       <form onSubmit={handleAddTodo}>
         <div className="grid">
-          <div className="col-6">
+          <div>
             <label htmlFor="title-input">Title</label>
             <input
               id="title-input"
@@ -119,7 +135,7 @@ function App() {
               className="contrast"
             />
           </div>
-          <div className="col-3">
+          <div>
             <label htmlFor="status-select">Status</label>
             <select
               id="status-select"
@@ -133,7 +149,7 @@ function App() {
               <option value={STATUS.PROBLEM}>Problem</option>
             </select>
           </div>
-          <div className="col-3">
+          <div>
             <label>&nbsp;</label>
             <button
               type="submit"
@@ -146,7 +162,7 @@ function App() {
         </div>
         {status === STATUS.PROBLEM && (
           <div className="grid">
-            <div className="col-9">
+            <div>
               <label htmlFor="problem-desc">Problem Description</label>
               <textarea
                 id="problem-desc"
@@ -162,7 +178,7 @@ function App() {
       </form>
 
       <div className="row">
-        <div className="col-6">
+        <div>
           <label htmlFor="search">Search Todos</label>
           <input
             id="search"
@@ -188,43 +204,36 @@ function App() {
       )}
 
       {!isLoading && !isError && (
-        <table className="striped" style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="striped">
           <thead>
             <tr>
-              <th scope="col" style={{ textAlign: 'left' }}>#</th>
-              <th scope="col" style={{ textAlign: 'left' }}>Title</th>
-              <th scope="col" style={{ textAlign: 'left' }}>Status</th>
-              <th scope="col" style={{ textAlign: 'left' }}>Actions</th>
+              <th scope="col">#</th>
+              <th scope="col">Title</th>
+              <th scope="col">Status</th>
+              <th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
             {todos?.map((todo: Todo, index: number) => (
-              <tr key={todo.id} style={{ verticalAlign: 'middle' }}>
-                <td style={{ verticalAlign: 'middle' }}>{index + 1}</td>
-                <td style={{ verticalAlign: 'middle' }}>{todo.title}</td>
-                <td style={{ verticalAlign: 'middle' }}>
-                  <select
-                    value={todo.status}
-                    onChange={(e) =>
-                      handleUpdateStatus(todo.id, e.target.value as TodoStatus)
-                    }
-                    disabled={updateTodoMutation.isPending}
-                    className="contrast"
-                    style={{ minWidth: '120px' }}
-                  >
-                    <option value={STATUS.CREATED}>Created</option>
-                    <option value={STATUS.COMPLETED}>Completed</option>
-                    <option value={STATUS.ON_GOING}>On Going</option>
-                    <option value={STATUS.PROBLEM}>Problem</option>
-                  </select>
+              <tr key={todo.id}>
+                <td>{index + 1}</td>
+                <td>{todo.title}</td>
+                <td>
+                  {todo.status.charAt(0).toUpperCase() + todo.status.slice(1)}
                 </td>
-                <td style={{ verticalAlign: 'middle' }}>
-                  <button
-                    onClick={() => handleShowDetail(todo)}
-                    style={{ padding: '0.3rem 0.6rem', fontSize: '0.9rem' }}
-                  >
-                    Show Detail
-                  </button>
+                <td>
+                  <div role="group">
+                    <button onClick={() => handleShowDetail(todo)}>
+                      Detail
+                    </button>
+                    <button
+                      className="contrast"
+                      onClick={() => handleDeleteTodo(todo.id)}
+                      disabled={deleteTodoMutation.isPending}
+                    >
+                      {deleteTodoMutation.isPending ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -265,8 +274,8 @@ function App() {
                     </select>
                   </div>
                 </div>
-                {(editingTodo?.status === STATUS.PROBLEM) && (
-                  <div className="mb-2">
+                {editingTodo?.status === STATUS.PROBLEM && (
+                  <div>
                     <label htmlFor="problem-desc">Problem Description</label>
                     <textarea
                       id="problem-desc"
