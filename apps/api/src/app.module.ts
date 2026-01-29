@@ -6,6 +6,9 @@ import { AppService } from './app.service';
 import { AppController } from './app.controller';
 import { TodoModule } from './todo/todo.module';
 
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 @Module({
   imports: [
     ConfigModule.forRoot(),
